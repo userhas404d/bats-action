@@ -166,7 +166,6 @@ runs:
       run: |
         if [[ "$RUNNER_OS" == "macOS" ]]; then
           DEFAULT_BASE_DIR="/usr/local/lib"
-          [[ "${DEFAULT_BASE_DIR}" == "$HOME"* ]] && CMD="" || CMD="sudo"
           TEMPDIR="/tmp"
         elif [[ "$RUNNER_OS" == "Windows" ]]; then
           DEFAULT_BASE_DIR="/c/Users/runneradmin"
@@ -174,8 +173,25 @@ runs:
           TEMPDIR="$HOME/AppData/Local/Temp"
         else
           DEFAULT_BASE_DIR="/usr/lib"
-          [[ "${DEFAULT_BASE_DIR}" == "$HOME"* ]] && CMD="" || CMD="sudo"
           TEMPDIR="/tmp"
+        fi
+
+        # Determine if sudo is needed based on custom paths
+        if [[ "$RUNNER_OS" != "Windows" ]]; then
+          if [[ "${{ inputs.support-path }}" == *"$GITHUB_WORKSPACE"* ]] || \
+             [[ "${{ inputs.assert-path }}" == *"$GITHUB_WORKSPACE"* ]] || \
+             [[ "${{ inputs.detik-path }}" == *"$GITHUB_WORKSPACE"* ]] || \
+             [[ "${{ inputs.file-path }}" == *"$GITHUB_WORKSPACE"* ]] || \
+             [[ "${{ inputs.support-path }}" == "$HOME"* ]] || \
+             [[ "${{ inputs.assert-path }}" == "$HOME"* ]] || \
+             [[ "${{ inputs.detik-path }}" == "$HOME"* ]] || \
+             [[ "${{ inputs.file-path }}" == "$HOME"* ]]; then
+            CMD=""
+          elif [[ "${DEFAULT_BASE_DIR}" == "$HOME"* ]]; then
+            CMD=""
+          else
+            CMD="sudo"
+          fi
         fi
 
         echo "_LIB_PATH=$DEFAULT_BASE_DIR" >> /tmp/bats-lib-path
@@ -374,7 +390,6 @@ runs:
           LIB_PATH="${SUPPORT_DESTDIR%/*}:${ASSERT_DESTDIR%/*}:${DETIK_DESTDIR%/*}:${FILE_DESTDIR%/*}"
         fi
         echo "libpath=$LIB_PATH" >> $GITHUB_OUTPUT
-
 
     - name: "Print info"
       id: info
